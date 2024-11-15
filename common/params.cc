@@ -207,6 +207,10 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"MadsCruiseMain", PERSISTENT},
     {"MadsDisengageLateralOnBrake", PERSISTENT},
     {"MadsUnifiedEngagementMode", PERSISTENT},
+
+    {"ToyotaAutoHold", PERSISTENT},
+    {"ToyotaEnhancedBsm", PERSISTENT},
+    {"ToyotaTSS2Long", PERSISTENT},
 };
 
 } // namespace
