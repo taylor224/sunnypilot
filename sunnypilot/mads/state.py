@@ -3,7 +3,7 @@ from openpilot.selfdrive.selfdrived.events import ET, Events
 from openpilot.selfdrive.selfdrived.state import SOFT_DISABLE_TIME
 from openpilot.common.realtime import DT_CTRL
 
-State = custom.SelfdriveStateSP.ModifiedAssistDrivingSystem.ModifiedAssistDrivingSystemState
+State = custom.SelfdriveStateSP.ModularAssistiveDrivingSystem.ModularAssistiveDrivingSystemState
 EventName = log.OnroadEvent.EventName
 
 ENABLED_STATES = (State.enabled, State.softDisabling, State.overriding)
@@ -95,6 +95,7 @@ class StateMachine:
     # DISABLED
     elif self.state == State.disabled:
       if events.contains(ET.ENABLE):
+        # TODO-SP: Allow entering State.paused if ET.NO_ENTRY
         if events.contains(ET.NO_ENTRY):
           self.add_current_alert_types(ET.NO_ENTRY)
 
@@ -105,7 +106,7 @@ class StateMachine:
             self.state = State.enabled
           self.add_current_alert_types(ET.ENABLE)
 
-    # check if MADS is engaged & available, and actuators are enabled
+    # check if MADS is engaged and actuators are enabled
     enabled = self.state in ENABLED_STATES
     active = self.state in ACTIVE_STATES
     if active:
