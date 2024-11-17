@@ -18,12 +18,10 @@ class ModularAssistiveDrivingSystem:
     self.enabled = False
     self.active = False
     self.enabled_prev = False
-    self.active_prev = False
     self.available = False
     self.allow_always = False
     self.selfdrive = selfdrive
     self.selfdrive.enabled_prev = False
-    self.selfdrive.active_prev = False
     self.state_machine = StateMachine(self)
 
     if self.selfdrive.CP.carName == "hyundai":
@@ -38,12 +36,12 @@ class ModularAssistiveDrivingSystem:
 
   def update_events(self, CS: car.CarState):
     def update_unified_engagement_mode():
-      if (self.unified_engagement_mode and self.active) or not self.unified_engagement_mode:
+      if (self.unified_engagement_mode and self.enabled) or not self.unified_engagement_mode:
         self.selfdrive.events.remove(EventName.pcmEnable)
         self.selfdrive.events.remove(EventName.buttonEnable)
 
     def update_silent_lkas_enable():
-      if self.state_machine.state == State.paused and self.active:
+      if self.state_machine.state == State.paused and self.enabled:
         self.selfdrive.events.add(EventName.silentLkasEnable)
 
     if not self.selfdrive.enabled:
@@ -54,6 +52,8 @@ class ModularAssistiveDrivingSystem:
 
       if not self.selfdrive.events.has(EventName.silentWrongGear) and not self.selfdrive.events.has(EventName.silentReverseGear):
         update_silent_lkas_enable()
+
+      self.selfdrive.events.remove(EventName.preEnableStandstill)
 
     if self.disengage_lateral_on_brake_toggle:
       if self.selfdrive.events.has(EventName.brakeHold):
@@ -74,7 +74,7 @@ class ModularAssistiveDrivingSystem:
 
     for be in CS.buttonEvents:
       if be.type == ButtonType.lkas and be.pressed and (CS.cruiseState.available or self.allow_always):
-        if self.active:
+        if self.enabled:
           self.selfdrive.events.add(EventName.lkasDisable)
         else:
           self.selfdrive.events.add(EventName.lkasEnable)
@@ -100,9 +100,9 @@ class ModularAssistiveDrivingSystem:
       self.enabled, self.active = self.state_machine.update(self.selfdrive.events)
 
     # update MADS status events
-    if self.selfdrive.active != self.selfdrive.active_prev or self.active != self.active_prev:
+    if self.selfdrive.enabled != self.selfdrive.enabled_prev or self.enabled != self.enabled_prev:
       self.selfdrive.events.add(EventName.madsStatusChanged)
 
     # Copy of previous SelfdriveD and MADS states for MADS events handling
-    self.selfdrive.enabled_prev, self.selfdrive.active_prev = self.selfdrive.enabled, self.selfdrive.active
-    self.enabled_prev, self.active_prev = self.enabled, self.active
+    self.selfdrive.enabled_prev = self.selfdrive.enabled
+    self.enabled_prev = self.enabled
