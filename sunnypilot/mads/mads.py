@@ -17,14 +17,17 @@ class ModularAssistiveDrivingSystem:
 
     self.enabled = False
     self.active = False
+    self.enabled_prev = False
+    self.active_prev = False
     self.available = False
     self.allow_always = False
     self.selfdrive = selfdrive
     self.selfdrive.enabled_prev = False
+    self.selfdrive.active_prev = False
     self.state_machine = StateMachine(self)
 
     if self.selfdrive.CP.carName == "hyundai":
-      if (self.selfdrive.CP.sunnyParams.flags & HyundaiFlagsSP.HAS_LFA_BUTTON) or \
+      if (self.selfdrive.CP.sunnypilotFlags & HyundaiFlagsSP.HAS_LFA_BUTTON) or \
             (self.selfdrive.CP.flags & HyundaiFlags.CANFD):
         self.allow_always = True
 
@@ -70,15 +73,9 @@ class ModularAssistiveDrivingSystem:
           self.selfdrive.events.add(EventName.lkasEnable)
 
     for be in CS.buttonEvents:
-      if be.type == ButtonType.cancel:
-        if not self.selfdrive.enabled and self.selfdrive.enabled_prev:
-          self.selfdrive.events.add(EventName.manualLongitudinalRequired)
       if be.type == ButtonType.lkas and be.pressed and (CS.cruiseState.available or self.allow_always):
         if self.active:
-          if self.selfdrive.enabled:
-            self.selfdrive.events.add(EventName.manualSteeringRequired)
-          else:
-            self.selfdrive.events.add(EventName.lkasDisable)
+          self.selfdrive.events.add(EventName.lkasDisable)
         else:
           self.selfdrive.events.add(EventName.lkasEnable)
 
@@ -102,5 +99,10 @@ class ModularAssistiveDrivingSystem:
     if not self.selfdrive.CP.passive and self.selfdrive.initialized:
       self.enabled, self.active = self.state_machine.update(self.selfdrive.events)
 
-    # Copy of previous SelfdriveD states for MADS events handling
-    self.selfdrive.enabled_prev = self.selfdrive.enabled
+    # update MADS status events
+    if self.selfdrive.active != self.selfdrive.active_prev or self.active != self.active_prev:
+      self.selfdrive.events.add(EventName.madsStatusChanged)
+
+    # Copy of previous SelfdriveD and MADS states for MADS events handling
+    self.selfdrive.enabled_prev, self.selfdrive.active_prev = self.selfdrive.enabled, self.selfdrive.active
+    self.enabled_prev, self.active_prev = self.enabled, self.active

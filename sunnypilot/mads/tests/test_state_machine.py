@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from pytest_mock import MockerFixture
 
 from cereal import custom
 from openpilot.common.realtime import DT_CTRL
@@ -25,17 +25,16 @@ def make_event(event_types):
 
 
 class MockMADS:
-  def __init__(self):
-    self.selfdrive = MagicMock()
-    self.selfdrive.state_machine = MagicMock()
+  def __init__(self, mocker: MockerFixture):
+    self.selfdrive = mocker.MagicMock()
+    self.selfdrive.state_machine = mocker.MagicMock()
     self.selfdrive.active = False
-    self.available = True
 
 
 class TestMADSStateMachine:
   @pytest.fixture(autouse=True)
-  def setup_method(self):
-    self.mads = MockMADS()
+  def setup_method(self, mocker: MockerFixture):
+    self.mads = MockMADS(mocker)
     self.events = Events()
     self.state_machine = StateMachine(self.mads)
     self.mads.selfdrive.state_machine.soft_disable_timer = int(SOFT_DISABLE_TIME / DT_CTRL)
@@ -93,16 +92,6 @@ class TestMADSStateMachine:
     self.state_machine.update(self.events)
     assert self.state_machine.state == State.paused
 
-  def test_maintain_states(self):
-    for state in ALL_STATES:
-      for et in MAINTAIN_STATES[state]:
-        self.state_machine.state = state
-        if et is not None:
-          self.events.add(make_event([et]))
-        self.state_machine.update(self.events)
-        assert self.state_machine.state == state
-        self.events.clear()
-
   def test_override_lateral(self):
     self.state_machine.state = State.enabled
     self.events.add(make_event([ET.OVERRIDE_LATERAL]))
@@ -115,10 +104,12 @@ class TestMADSStateMachine:
     self.state_machine.update(self.events)
     assert self.state_machine.state == State.enabled
 
-  def test_mads_unavailable(self):
-    self.mads.available = False
+  def test_maintain_states(self):
     for state in ALL_STATES:
-      self.state_machine.state = state
-      enabled, active = self.state_machine.update(self.events)
-      assert not enabled
-      assert not active
+      for et in MAINTAIN_STATES[state]:
+        self.state_machine.state = state
+        if et is not None:
+          self.events.add(make_event([et]))
+        self.state_machine.update(self.events)
+        assert self.state_machine.state == state
+        self.events.clear()
