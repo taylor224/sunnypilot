@@ -1,12 +1,13 @@
 import pytest
 from pytest_mock import MockerFixture
 
-from cereal import custom
+from cereal import log, custom
 from openpilot.common.realtime import DT_CTRL
-from openpilot.sunnypilot.mads.state import StateMachine, SOFT_DISABLE_TIME
+from openpilot.sunnypilot.mads.state import StateMachine, SOFT_DISABLE_TIME, ALLOW_PAUSED
 from openpilot.selfdrive.selfdrived.events import Events, ET, EVENTS, NormalPermanentAlert
 
 State = custom.SelfdriveStateSP.ModularAssistiveDrivingSystem.ModularAssistiveDrivingSystemState
+EventName = log.OnroadEvent.EventName
 
 # The event types that maintain the current state
 MAINTAIN_STATES = {State.enabled: (None,), State.disabled: (None,), State.softDisabling: (ET.SOFT_DISABLE,),
@@ -54,8 +55,21 @@ class TestMADSStateMachine:
         self.events.add(make_event([et, ET.USER_DISABLE]))
         self.state_machine.state = state
         self.state_machine.update(self.events)
-        assert self.state_machine.state in (State.disabled, State.paused)
+        assert State.disabled == self.state_machine.state
         self.events.clear()
+
+  def test_user_disable_to_paused(self):
+    paused_events = (EventName.silentLkasDisable, EventName.silentPedalPressed, EventName.silentBrakeHold)
+    for state in ALL_STATES:
+      for et in MAINTAIN_STATES[state]:
+        self.events.add(make_event([et, ET.USER_DISABLE]))
+        for en in paused_events:
+          self.events.add(en)
+          self.state_machine.state = state
+          self.state_machine.update(self.events)
+          final_state = State.paused if self.events.has(en) and state != State.disabled else State.disabled
+          assert self.state_machine.state == final_state
+          self.events.clear()
 
   def test_soft_disable(self):
     for state in ALL_STATES:
@@ -82,9 +96,10 @@ class TestMADSStateMachine:
   def test_no_entry(self):
     for et in ENABLE_EVENT_TYPES:
       self.events.add(make_event([ET.NO_ENTRY, et]))
-      self.state_machine.update(self.events)
-      assert self.state_machine.state == State.disabled
-      self.events.clear()
+      if not self.events.has_list(ALLOW_PAUSED):
+        self.state_machine.update(self.events)
+        assert self.state_machine.state == State.disabled
+        self.events.clear()
 
   def test_no_entry_paused(self):
     self.state_machine.state = State.paused

@@ -9,10 +9,13 @@ EventName = log.OnroadEvent.EventName
 ACTIVE_STATES = (State.enabled, State.softDisabling, State.overriding)
 ENABLED_STATES = (State.paused, *ACTIVE_STATES)
 
+GEARS_ALLOW_PAUSED_SILENT = [EventName.silentWrongGear, EventName.silentReverseGear, EventName.silentBrakeHold]
+GEARS_ALLOW_PAUSED = [EventName.wrongGear, EventName.reverseGear, EventName.brakeHold, *GEARS_ALLOW_PAUSED_SILENT]
+ALLOW_PAUSED = [EventName.silentPedalPressed, *GEARS_ALLOW_PAUSED]
+
 
 class StateMachine:
   def __init__(self, mads):
-    self.mads = mads
     self.selfdrive = mads.selfdrive
     self.ss_state_machine = mads.selfdrive.state_machine
 
@@ -31,8 +34,8 @@ class StateMachine:
     if self.state != State.disabled:
       # user and immediate disable always have priority in a non-disabled state
       if events.contains(ET.USER_DISABLE):
-        if events.has(EventName.silentPedalPressed) or events.has(EventName.silentBrakeHold) or \
-           events.has(EventName.silentWrongGear) or events.has(EventName.silentReverseGear):
+        if events.has(EventName.silentLkasDisable) or events.has(EventName.silentPedalPressed) or \
+           events.has(EventName.silentBrakeHold):
           self.state = State.paused
         else:
           self.state = State.disabled
@@ -95,8 +98,9 @@ class StateMachine:
     # DISABLED
     elif self.state == State.disabled:
       if events.contains(ET.ENABLE):
-        # TODO-SP: Allow entering State.paused if ET.NO_ENTRY
         if events.contains(ET.NO_ENTRY):
+          if events.has_list(ALLOW_PAUSED):
+            self.state = State.paused
           self.add_current_alert_types(ET.NO_ENTRY)
 
         else:

@@ -187,14 +187,14 @@ struct OnroadEvent @0xc4fa6047f024e718 {
     # sunnypilot
     lkasEnable @151;
     lkasDisable @152;
-    manualSteeringRequired @153;  # TODO-SP: remove before merging
-    manualLongitudinalRequired @154;  # TODO-SP: remove before merging
+    manualSteeringRequired @153;
+    manualLongitudinalRequired @154;
     silentPedalPressed @155;
     silentLkasEnable @156;
-    silentBrakeHold @157;
-    silentWrongGear @158;
-    silentReverseGear @159;
-    madsStatusChanged @160;
+    silentLkasDisable @157;
+    silentBrakeHold @158;
+    silentWrongGear @159;
+    silentReverseGear @160;
 
     soundsUnavailableDEPRECATED @47;
   }
