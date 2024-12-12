@@ -1,5 +1,6 @@
 from cereal import car
 import cereal.messaging as messaging
+from opendbc.car.hyundai.values import ANGLE_CONTROL_CAR
 from openpilot.common.conversions import Conversions as CV
 from openpilot.common.numpy_fast import clip, interp
 from openpilot.common.params import Params
@@ -57,6 +58,9 @@ class CarController(CarControllerBase):
     self.apply_steer_last = 0
     self.car_fingerprint = CP.carFingerprint
     self.last_button_frame = 0
+
+    self.apply_angle_now = 0
+    self.apply_angle_last = 0
 
     self.disengage_blink = 0.
     self.lat_disengage_init = False
@@ -234,8 +238,10 @@ class CarController(CarControllerBase):
       hda2_long = hda2 and self.CP.openpilotLongitudinalControl
 
       # steering control
-      can_sends.extend(hyundaicanfd.create_steering_messages(self.packer, self.CP, self.CAN, CC.enabled, apply_steer_req, apply_steer,
-                                                             lateral_paused, blinking_icon))
+      angle_control = self.CP.carFingerprint in ANGLE_CONTROL_CAR
+      can_sends.extend(hyundaicanfd.create_steering_messages(self.packer, self.CP, self.CAN, CC.enabled,
+                                                             apply_steer_req, apply_steer, lateral_paused, blinking_icon,
+                                                             self.apply_angle_now, angle_control))
 
       # prevent LFA from activating on HDA2 by sending "no lane lines detected" to ADAS ECU
       if self.frame % 5 == 0 and hda2:

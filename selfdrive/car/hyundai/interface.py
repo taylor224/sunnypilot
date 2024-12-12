@@ -1,5 +1,6 @@
 import cereal.messaging as messaging
 from cereal import car
+from opendbc.car.hyundai.values import ANGLE_CONTROL_CAR
 from panda import Panda
 from openpilot.common.params import Params
 from openpilot.selfdrive.car.sunnypilot.fingerprinting import can_fingerprint, get_one_can
@@ -20,11 +21,15 @@ GearShifter = car.CarState.GearShifter
 ENABLE_BUTTONS = (Buttons.RES_ACCEL, Buttons.SET_DECEL, Buttons.CANCEL)
 BUTTONS_DICT = {Buttons.RES_ACCEL: ButtonType.accelCruise, Buttons.SET_DECEL: ButtonType.decelCruise,
                 Buttons.GAP_DIST: ButtonType.gapAdjustCruise, Buttons.CANCEL: ButtonType.cancel}
+SteerControlType = car.CarParams.SteerControlType
 
 
 class CarInterface(CarInterfaceBase):
   @staticmethod
   def _get_params(ret, candidate, fingerprint, car_fw, experimental_long, docs):
+    if candidate in ANGLE_CONTROL_CAR:
+      ret.steerControlType = SteerControlType.angle
+
     ret.carName = "hyundai"
     ret.radarUnavailable = RADAR_START_ADDR not in fingerprint[1] or DBC[ret.carFingerprint]["radar"] is None
     ret.customStockLongAvailable = True
